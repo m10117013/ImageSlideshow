@@ -41,7 +41,11 @@ public class SDWebImageSource: NSObject, InputSource {
 
     public func load(to imageView: UIImageView, with callback: @escaping (UIImage?) -> Void) {
         imageView.sd_setImage(with: self.url, placeholderImage: self.placeholder, options: [], completed: { (image, _, _, _) in
-            callback(image)
+            if (image == nil) {
+                callback(self.placeholder)
+            } else {
+                callback(image)
+            }
         })
     }
     

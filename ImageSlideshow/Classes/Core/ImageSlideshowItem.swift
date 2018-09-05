@@ -32,6 +32,10 @@ open class ImageSlideshowItem: UIScrollView, UIScrollViewDelegate {
     /// Maximum zoom scale
     open var maximumScale: CGFloat = 2.0
 
+    
+    /// Is Image need blur processing
+    open var needProcessBlur : Bool = false
+    
     fileprivate var lastFrame = CGRect.zero
     fileprivate var imageReleased = false
     fileprivate var isLoading = false
@@ -129,8 +133,33 @@ open class ImageSlideshowItem: UIScrollView, UIScrollViewDelegate {
                 // set image to nil if there was a release request during the image load
                 if let imageRelease = self?.imageReleased, imageRelease {
                     self?.imageView.image = nil
-                }else{
-                    self?.imageView.image = image
+                } else {
+                    if let needProcessBlur = self?.needProcessBlur {
+                        if (needProcessBlur) {
+                            
+                            DispatchQueue.global().async {
+                                let new_image = self?.blurImage(image: image!)
+                                DispatchQueue.main.async {
+                                    
+                                    let label = UILabel(frame: CGRect(x: (self?.imageView.bounds.width)! / 2 - 100, y: (self?.imageView.bounds.height)! / 2 - 25, width: 200, height: 50))
+                                    label.layer.cornerRadius = 10
+                                    label.layer.borderColor = UIColor.gray.cgColor
+                                    label.layer.borderWidth = 3
+                                    label.textAlignment = .center
+                                    label.textColor = UIColor.white
+                                    label.sizeToFit()
+                                    label.text = "點我看更多圖片"
+                                    self?.imageView.addSubview(label)
+                                    label.frame = CGRect(x: (self?.imageView.bounds.width)! / 2 - 100, y: (self?.imageView.bounds.height)! / 2 - 25, width: 200, height: 50)
+                                    self?.imageView.image = new_image
+                                }
+                                
+                            }
+                            
+                        } else {   
+                            self?.imageView.image = image
+                        }
+                    }
                 }
                 self?.activityIndicator?.hide()
                 self?.loadFailed = image == nil
@@ -138,6 +167,8 @@ open class ImageSlideshowItem: UIScrollView, UIScrollViewDelegate {
             }
         }
     }
+    
+    
     
     func releaseImage() {
         imageReleased = true
@@ -238,6 +269,83 @@ open class ImageSlideshowItem: UIScrollView, UIScrollViewDelegate {
 
     open func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return zoomEnabled ? imageView : nil
+    }
+
+}
+
+extension ImageSlideshowItem {
+    
+    
+    func blurImage(image:UIImage) -> UIImage? {
+        
+
+        var image = self.resizeImage(image : image, targetSize: CGSize(width:   200, height: 100))
+        
+        let context = CIContext(options: nil)
+        let inputImage = CIImage(image: image)
+        let originalOrientation = image.imageOrientation
+        let originalScale = image.scale
+        
+        let filter = CIFilter(name: "CIGaussianBlur")
+        filter?.setValue(inputImage, forKey: kCIInputImageKey)
+        filter?.setValue(10.0, forKey: kCIInputRadiusKey)
+        let outputImage = filter?.outputImage
+        
+        var cgImage:CGImage?
+        
+        if let asd = outputImage
+        {
+            cgImage = context.createCGImage(asd, from: (inputImage?.extent)!)
+        }
+        
+        if let cgImageA = cgImage
+        {
+//            return self.waterMark(image: image, text: "12")
+            return UIImage(cgImage: cgImageA, scale: CGFloat(originalScale), orientation: originalOrientation)
+        }
+        
+        return nil
+    }
+    
+    func resizeImage(image: UIImage, targetSize: CGSize) -> UIImage {
+        let size = image.size
+        
+        let widthRatio  = targetSize.width  / size.width
+        let heightRatio = targetSize.height / size.height
+        
+        // Figure out what our orientation is, and use that to form the rectangle
+        var newSize: CGSize
+        if(widthRatio > heightRatio) {
+            newSize = CGSize(width: size.width * heightRatio, height: size.height * heightRatio)
+        } else {
+            newSize = CGSize(width: size.width * widthRatio,  height: size.height * widthRatio)
+        }
+        
+        // This is the rect that we've calculated out and this is what is actually used below
+        let rect = CGRect(x: 0, y: 0, width: newSize.width, height: newSize.height)
+        
+        // Actually do the resizing to the rect using the ImageContext stuff
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: rect)
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return newImage!
+    }
+    
+    func waterMark(image:UIImage , text:String) -> UIImage! {
+        
+        UIGraphicsBeginImageContext(image.size)
+        image.draw(in: CGRect(x: 0, y: 0, width: image.size.width, height: image.size.width))
+        
+        UIColor.gray.set()
+        let watermark = UIImage(named: "MasterCard")
+        watermark?.draw(in: CGRect(x: image.size.width / 2 - 50 , y: image.size.height / 2, width: 50, height: 50))
+        
+        let re_image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return re_image
     }
 
 }

@@ -177,6 +177,8 @@ open class ImageSlideshow: UIView {
             }
         }
     }
+    
+    open var isNeedBlurLastImage = false
 
     fileprivate var slideshowTimer: Timer?
     fileprivate var scrollViewImages = [InputSource]()
@@ -296,6 +298,11 @@ open class ImageSlideshow: UIView {
             scrollView.addSubview(item)
             i += 1
         }
+        
+        if isNeedBlurLastImage {
+            let x = slideshowItems.count - 2 > 0 ? slideshowItems.count-2 : 0
+            slideshowItems[x].needProcessBlur = true
+        }
 
         if circular && (scrollViewImages.count > 1) {
             scrollViewPage = 1
@@ -358,7 +365,7 @@ open class ImageSlideshow: UIView {
         layoutPageControl()
         setTimerIfNeeded()
     }
-
+  
     // MARK: paging methods
 
     /**

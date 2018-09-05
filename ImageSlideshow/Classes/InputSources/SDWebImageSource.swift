@@ -16,6 +16,9 @@ public class SDWebImageSource: NSObject, InputSource {
 
     /// placeholder used before image is loaded
     public var placeholder: UIImage?
+    
+    /// download Fail image
+    public var downloadFail: UIImage?
 
     /// Initializes a new source with a URL
     /// - parameter url: a url to be loaded
@@ -38,11 +41,28 @@ public class SDWebImageSource: NSObject, InputSource {
             return nil
         }
     }
+    
+   
+    
+    /// Initializes a new source with a URL string
+    /// - parameter urlString: a string url to load
+    /// - parameter placeholder: a placeholder used before image is loaded
+    ///   - failImage: failimage
+    public init?(urlString: String, placeholder: UIImage? = nil ,failImage:UIImage? = nil) {
+        if let validUrl = URL(string: urlString) {
+            self.url = validUrl
+            self.placeholder = placeholder
+            self.downloadFail = failImage
+            super.init()
+        } else {
+            return nil
+        }
+    }
 
     public func load(to imageView: UIImageView, with callback: @escaping (UIImage?) -> Void) {
         imageView.sd_setImage(with: self.url, placeholderImage: self.placeholder, options: [], completed: { (image, _, _, _) in
             if (image == nil) {
-                callback(self.placeholder)
+                callback(self.downloadFail)
             } else {
                 callback(image)
             }
